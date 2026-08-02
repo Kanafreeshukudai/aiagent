@@ -21,7 +21,8 @@ DEFAULT_REPLY = "Salom! 👋 Hozir band ekanman, tez orada javob beraman."
 # ----------------------------------------------------------------
 KEYWORD_REPLIES = {
     # Salomlashish
-    "salom": "Salom! 😊 Tez orada javob beraman.",
+    "salom": "Assalomu Alaykum 😊 
+    Tez orada javob beraman.",
     "assalomu alaykum": "Va alaykum assalom! Tez orada javob beraman.",
     "hey": "Salom! Tez orada javob beraman.",
     "hi": "Salom! Tez orada javob beraman.",
