@@ -2,75 +2,79 @@ import os
 import telebot
 from datetime import datetime
 
-# Bot tokenini Railway'dagi "Variables" bo'limidan o'qiydi (kodga yozilmaydi!)
 TOKEN = os.environ.get("BOT_TOKEN")
-
 bot = telebot.TeleBot(TOKEN)
 
-# business_connection_id -> profil egasining user_id'si.
-# Shu orqali "bu xabarni siz o'zingiz yozdingizmi yoki suhbatdoshingizmi"
-# ni ajratamiz.
 business_owners = {}
-
 
 @bot.business_connection_handler()
 def handle_business_connection(connection):
     business_owners[connection.business_connection_id] = connection.user.id
 
+# ----------------------------------------------------------------
+# QISQA STANDART JAVOB
+# ----------------------------------------------------------------
+DEFAULT_REPLY = "Salom! 👋 Hozir band ekanman, tez orada javob beraman."
 
 # ----------------------------------------------------------------
-# SHU YERDA O'ZINGIZ XOHLAGAN JAVOBLARNI TAHRIRLASHINGIZ MUMKIN
+# KALIT SO'Z / IBORALAR -> QISQA JAVOB (kichik harflarda)
 # ----------------------------------------------------------------
-
-DEFAULT_REPLY = (
-    "Salom! 👋 Hozircha band bo'lganim uchun shaxsan javob bera olmayapman, "
-    "lekin xabaringizni ko'rdim va imkon bo'lishi bilan albatta javob beraman."
-)
-
-# Kalit so'z -> maxsus javob (kichik harflarda yozilsin)
 KEYWORD_REPLIES = {
-    "salom": "Salom! Qalaysiz? 😊 Tez orada shaxsan javob beraman.",
-    "assalomu alaykum": "Va alaykum assalom! Xabaringiz uchun rahmat, tez orada javob beraman.",
-    "narx": "Narxlar bo'yicha savolingiz uchun rahmat, batafsil ma'lumotni tez orada yuboraman.",
-    "qachon": "Vaqt bo'yicha savolingizni ko'rdim, iloji boricha tezroq javob berishga harakat qilaman.",
+    # Salomlashish
+    "salom": "Salom! 😊 Tez orada javob beraman.",
+    "assalomu alaykum": "Va alaykum assalom! Tez orada javob beraman.",
+    "hey": "Salom! Tez orada javob beraman.",
+    "hi": "Salom! Tez orada javob beraman.",
+    "salomlar": "Salom! Tez orada javob beraman.",
+
+    # Bot kimligi haqida
+    "sen kimsan": "Men telegram egasining shaxsiy agentiman 🤖 U hozir band, men esa navbatchiman.",
+    "kimsan": "Men uning shaxsiy yordamchisiman 🤖 Xabaringizni yetkazib qo'yaman.",
+    "bot mi": "Ha, men botman, lekin his-tuyg'ularim bor deb hisoblang 😄 Tez orada egam o'zi javob beradi.",
+    "robotmisan": "Ha, robotman, lekin yaxshi robotlardanman 🤖✨",
+
+    # Qayerda ekanligi haqida
+    "qayerda": "U hozir boshqa vazifalar bilan band, ammo xabaringiz yetib bordi ✅ Tez orada o'zi javob beradi.",
+    "qayerdasiz": "Hozircha ko'rinmay turibdi, lekin qaytishi bilanoq javob beradi 🙂",
+    "nimaqilyapsiz": "Menga qolsa, sizga javob yozib turibman 😄 Egam esa band, tez orada o'zi yozadi.",
+
+    # Kundalik / kulgili
+    "qalaysiz": "Zo'rman, rahmat! Siz-chi? 😄",
+    "yaxshimisiz": "Ha, ajoyibman! Siz qalaysiz?",
+    "nima gap": "Hammasi joyida! Sizda-chi? 😊",
+    "zerikdim": "Ehh, zerikish yomon narsa 😅 Egam kelsa, albatta suhbatlashib beradi!",
+    "charchadim": "Dam oling unda! 🍵 Men shu yerdaman, u kelguncha kutib turaman.",
+    "kulgili gap ayt": "Dasturchi nega ko'chaga chiqmaydi? Chunki u 'bug' larni tuzatishdan charchamaydi 😂",
+    "hazil": "Nega robot hech qachon ochlikni his qilmaydi? Chunki u faqat 'bayt' yeydi 😄",
+    "rahmat": "Arzimaydi! 🙏",
+    "tashakkur": "Arzimaydi! 🙏",
+    "xayr": "Xayr! Yaxshi kun tilayman 👋",
+    "ko'rishguncha": "Ko'rishguncha! 👋",
+    "sog'inibman": "Awww, u ham sizni albatta sog'ingandir 🥰 Tez orada javob beradi!",
+    "yoqtiraman": "Bu juda yoqimli! 😊 Egamga albatta yetkazib qo'yaman.",
 }
 
-# Ish vaqtidan tashqarida boshqacha javob berish (ixtiyoriy)
 WORKING_HOURS_START = 9
 WORKING_HOURS_END = 18
-
 
 def build_reply(text: str) -> str:
     lowered = text.lower()
     for keyword, reply in KEYWORD_REPLIES.items():
         if keyword in lowered:
             return reply
-
     hour = datetime.now().hour
     if hour < WORKING_HOURS_START or hour >= WORKING_HOURS_END:
-        return DEFAULT_REPLY + "\n\n(Hozir ish vaqtidan tashqari, ertalab javob beraman.)"
-
+        return DEFAULT_REPLY + "\n(Ish vaqtidan tashqari, ertalab javob beraman.)"
     return DEFAULT_REPLY
-
 
 @bot.message_handler(func=lambda message: True, content_types=["text"])
 def handle_message(message):
     reply = build_reply(message.text)
     bot.reply_to(message, reply)
 
-
-# ----------------------------------------------------------------
-# "Chatni avtomatlashtirish" orqali sizning shaxsiy chatlaringizga
-# kelgan xabarlar ham shu handler orqali keladi (oddiy botga yozilgan
-# xabarlardan farqli o'laroq). Telegram bunday xabarlarni alohida
-# "business_message" turi sifatida yuboradi.
-# ----------------------------------------------------------------
 @bot.business_message_handler(func=lambda message: True, content_types=["text"])
 def handle_business_message(message):
     owner_id = business_owners.get(message.business_connection_id)
-
-    # Bot qayta ishga tushgan bo'lsa, xotiradagi ro'yxat tozalanadi —
-    # shu holatda ulanish ma'lumotini qayta so'rab olamiz
     if owner_id is None:
         try:
             connection = bot.get_business_connection(message.business_connection_id)
@@ -78,22 +82,15 @@ def handle_business_message(message):
             business_owners[message.business_connection_id] = owner_id
         except Exception:
             pass
-
-    # Agar xabarni profil egasi (ya'ni siz) o'zingiz yozgan bo'lsangiz —
-    # bot hech narsa qilmasligi kerak, faqat suhbatdoshingiz yozganda javob beradi
     if owner_id is not None and message.from_user.id == owner_id:
         return
-
     reply = build_reply(message.text)
-    # business_connection_id ko'rsatilishi SHART — aks holda javob
-    # botning o'z nomidan emas, sizning profilingiz nomidan yuborilmaydi
     bot.send_message(
         chat_id=message.chat.id,
         text=reply,
         business_connection_id=message.business_connection_id,
         reply_to_message_id=message.message_id,
     )
-
 
 if __name__ == "__main__":
     print("Bot ishga tushdi...")
